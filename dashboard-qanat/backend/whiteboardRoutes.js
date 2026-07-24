@@ -9,6 +9,7 @@ import {
   ensureWhiteboardDatabase,
   resolvePythonPath,
   getSkillPaths,
+  WhiteboardRenderError,
 } from "./whiteboardService.js";
 import { buildPythonSpawnEnv } from "./pythonEnv.js";
 import { execSync } from "child_process";
@@ -278,8 +279,30 @@ export function registerWhiteboardRoutes(app, deps) {
         "error",
         runId,
       ]);
+
+      // Diagnóstico estruturado quando a falha vem de uma etapa do render.
+      if (err instanceof WhiteboardRenderError) {
+        const errorLog =
+          err.reportExcerpt || err.stderr || err.stdout || err.message || "";
+        res.status(500).json({
+          error: "Renderização interrompida.",
+          stage: err.stage,
+          failedStep: err.failedStep,
+          errorLog: errorLog.slice(0, 6000),
+          reportPath: err.reportPath,
+          details: err.message,
+        });
+        return;
+      }
+
+      // Falha na narração (Fish Speech / ffmpeg) ou outra etapa anterior.
       res.status(500).json({
-        error: "Erro ao renderizar vídeo do quadro.",
+        error: "Falha antes da renderização (narração/preparação).",
+        stage: "Narração / preparação",
+        errorLog: (err.stderr?.toString?.() || err.message || "").slice(
+          0,
+          6000
+        ),
         details: err.message,
       });
     }

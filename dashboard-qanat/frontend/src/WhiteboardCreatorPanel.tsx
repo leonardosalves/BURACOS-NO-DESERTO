@@ -77,6 +77,13 @@ export function WhiteboardCreatorPanel({
   // Render logs
   const [renderLogs, setRenderLogs] = useState<string[]>([]);
   const [rendering, setRendering] = useState<boolean>(false);
+  const [renderError, setRenderError] = useState<{
+    error: string;
+    stage?: string;
+    failedStep?: string | null;
+    errorLog?: string;
+    reportPath?: string | null;
+  } | null>(null);
 
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -227,6 +234,7 @@ export function WhiteboardCreatorPanel({
   const handleRender = async () => {
     if (!selectedRunId) return;
     setRendering(true);
+    setRenderError(null);
     setRenderLogs([
       "Iniciando pipeline de renderização...",
       "1. Gerando narração com Fish TTS em Português...",
@@ -253,14 +261,24 @@ export function WhiteboardCreatorPanel({
         fetchDetail(selectedRunId);
         setActiveSubTab("result");
       } else {
-        const errorMsg =
-          (data.error || "Falha na renderização.") +
-          (data.details ? ` (${data.details})` : "");
-        setRenderLogs((prev) => [...prev, "ERRO: " + errorMsg]);
+        setRenderError({
+          error: data.error || "Falha na renderização.",
+          stage: data.stage,
+          failedStep: data.failedStep,
+          errorLog: data.errorLog,
+          reportPath: data.reportPath,
+        });
+        setRenderLogs((prev) => [
+          ...prev,
+          `ERRO: ${data.error || "Falha na renderização."}${
+            data.stage ? ` (etapa: ${data.stage})` : ""
+          }`,
+        ]);
         toast.error(data.error || "Erro de renderização.", { id: toastId });
       }
     } catch (err: any) {
       console.error(err);
+      setRenderError({ error: "Erro de conexão com o servidor." });
       setRenderLogs((prev) => [...prev, "ERRO de conexão com o servidor."]);
       toast.error("Erro ao iniciar renderização.", { id: toastId });
     } finally {
@@ -808,6 +826,82 @@ export function WhiteboardCreatorPanel({
                                   {log}
                                 </div>
                               ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Diagnóstico estruturado do erro de renderização */}
+                        {renderError && !rendering && (
+                          <div className="flex flex-col gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/[0.04] p-4">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                              <h4 className="text-xs font-bold text-rose-200">
+                                Renderização interrompida
+                              </h4>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                              {renderError.stage && (
+                                <div className="rounded-lg bg-black/30 border border-rose-500/15 px-3 py-2">
+                                  <p className="text-[9px] uppercase tracking-wider text-rose-400/80">
+                                    Etapa
+                                  </p>
+                                  <p className="text-zinc-200 mt-0.5">
+                                    {renderError.stage}
+                                  </p>
+                                </div>
+                              )}
+                              {renderError.failedStep && (
+                                <div className="rounded-lg bg-black/30 border border-rose-500/15 px-3 py-2">
+                                  <p className="text-[9px] uppercase tracking-wider text-rose-400/80">
+                                    Passo que falhou
+                                  </p>
+                                  <p className="text-zinc-200 mt-0.5 font-mono">
+                                    {renderError.failedStep}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            {renderError.errorLog && (
+                              <div className="rounded-lg bg-black/50 border border-rose-500/15 px-3 py-2">
+                                <p className="text-[9px] uppercase tracking-wider text-rose-400/80 mb-1">
+                                  Log do erro
+                                </p>
+                                <pre className="max-h-40 overflow-y-auto font-mono text-[10px] text-rose-200/80 whitespace-pre-wrap leading-relaxed">
+                                  {renderError.errorLog}
+                                </pre>
+                              </div>
+                            )}
+                            <div className="rounded-lg bg-amber-500/[0.06] border border-amber-500/20 px-3 py-2">
+                              <p className="text-[9px] uppercase tracking-wider text-amber-400/80">
+                                Solução recomendada
+                              </p>
+                              <p className="text-[11px] text-amber-100/80 mt-0.5 leading-relaxed">
+                                Verifique a imagem do quadro indicado
+                                (resolução/proporção 16:9), substitua se estiver
+                                corrompida e tente novamente. O progresso
+                                anterior (narração e quadros já renderizados) é
+                                preservado.
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={handleRender}
+                                className="h-8 px-4 bg-rose-500 hover:bg-rose-400 rounded-lg text-[11px] font-bold text-white cursor-pointer transition"
+                              >
+                                Corrigir e tentar novamente
+                              </button>
+                              <button
+                                onClick={() => setActiveSubTab("images")}
+                                className="h-8 px-4 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[11px] font-bold text-zinc-200 cursor-pointer transition"
+                              >
+                                Substituir imagem
+                              </button>
+                              {renderError.reportPath && (
+                                <span className="h-8 px-3 flex items-center text-[10px] text-zinc-500 font-mono">
+                                  Relatório:{" "}
+                                  {renderError.reportPath.split(/[\\/]/).pop()}
+                                </span>
+                              )}
                             </div>
                           </div>
                         )}

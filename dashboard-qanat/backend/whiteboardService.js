@@ -584,6 +584,76 @@ function formatSecondsToVttTime(seconds) {
   return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
 }
 
+/**
+ * Erro estruturado de render — carrega a etapa que falhou e o log real do
+ * script (stdout/stderr), permitindo um diagnóstico acionável no frontend.
+ */
+export class WhiteboardRenderError extends Error {
+  constructor(stage, command, detail) {
+    super(detail.message || `Falha na etapa: ${stage}`);
+    this.name = "WhiteboardRenderError";
+    this.stage = stage;
+    this.command = command;
+    this.stdout = detail.stdout || "";
+    this.stderr = detail.stderr || "";
+    this.reportPath = detail.reportPath || null;
+    this.reportExcerpt = detail.reportExcerpt || null;
+    this.failedStep = detail.failedStep || null;
+  }
+}
+
+/** Extrai o "Failed Step" e o "Error Log" do render_acceptance_report.md. */
+function readRenderFailureReport(runDir) {
+  try {
+    const reportPath = path.join(runDir, "render_acceptance_report.md");
+    if (!fs.existsSync(reportPath))
+      return { reportPath: null, reportExcerpt: null, failedStep: null };
+    const content = fs.readFileSync(reportPath, "utf8");
+    const stepMatch = content.match(/Failed Step:\s*(.+)/i);
+    const failedStep = stepMatch ? stepMatch[1].trim() : null;
+    const logMatch = content.match(
+      /##?\s*Error Log[\s\S]*?\n([\s\S]{0,4000})/i
+    );
+    const reportExcerpt = logMatch
+      ? logMatch[1].trim()
+      : content.slice(0, 4000);
+    return { reportPath, reportExcerpt, failedStep };
+  } catch {
+    return { reportPath: null, reportExcerpt: null, failedStep: null };
+  }
+}
+
+/** Roda uma etapa do render capturando saída; lança WhiteboardRenderError com o log real. */
+function runRenderStage(stage, command, opts, runDir) {
+  try {
+    const stdout = execSync(command, {
+      ...opts,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return stdout || "";
+  } catch (err) {
+    const stdout =
+      typeof err.stdout === "string"
+        ? err.stdout
+        : err.stdout?.toString?.() || "";
+    const stderr =
+      typeof err.stderr === "string"
+        ? err.stderr
+        : err.stderr?.toString?.() || "";
+    const report = readRenderFailureReport(runDir);
+    const tail = (stderr || stdout || err.message || "").slice(-3000);
+    throw new WhiteboardRenderError(stage, command, {
+      message: tail || `Falha na etapa: ${stage}`,
+      stdout,
+      stderr,
+      reportPath: report.reportPath,
+      reportExcerpt: report.reportExcerpt,
+      failedStep: report.failedStep,
+    });
+  }
+}
+
 export function runWhiteboardRender(
   workspaceDir,
   runDir,
@@ -591,64 +661,57 @@ export function runWhiteboardRender(
 ) {
   const python = resolvePythonPath(workspaceDir);
   const sPaths = getSkillPaths(workspaceDir);
+  const baseOpts = {
+    cwd: workspaceDir,
+    env: buildPythonSpawnEnv(),
+    windowsHide: true,
+  };
 
   onLog("1. Gerando o manifesto de assets de imagem...");
-  execSync(
+  runRenderStage(
+    "Manifesto de assets",
     `"${python}" "${sPaths.writeBoardAssetManifest}" --project-dir "${runDir}" --overwrite`,
-    {
-      cwd: workspaceDir,
-      env: buildPythonSpawnEnv(),
-      windowsHide: true,
-    }
+    baseOpts,
+    runDir
   );
 
   onLog("2. Executando calibração automática de delimitadores (bboxes)...");
-  execSync(
+  runRenderStage(
+    "Calibração de bboxes",
     `"${python}" "${sPaths.autoCalibrate}" --project-dir "${runDir}" --provider mock --write-tool-on-partial --json`,
-    {
-      cwd: workspaceDir,
-      env: buildPythonSpawnEnv(),
-      windowsHide: true,
-    }
+    baseOpts,
+    runDir
   );
 
   onLog("3. Gerando o pacote de controle do quadro (Stage D)...");
-  execSync(
+  runRenderStage(
+    "Pacote de controle (Stage D)",
     `"${python}" "${sPaths.generateBoardPackage}" --project "${runDir}" --asset-manifest "${path.join(runDir, "board_asset_manifest.json")}" --voiceover "${path.join(runDir, "script", "voiceover_segments.json")}" --calibration-dir "${path.join(runDir, "calibration")}" --output "${path.join(runDir, "board_source_for_e")}"`,
-    {
-      cwd: workspaceDir,
-      env: buildPythonSpawnEnv(),
-      windowsHide: true,
-    }
+    baseOpts,
+    runDir
   );
 
   onLog("4. Renderizando composição de vídeo do quadro (Stage E)...");
-  execSync(
+  runRenderStage(
+    "Render da composição (Stage E)",
     `node "${sPaths.renderMultiBoardProject}" --project-dir "${runDir}" --board-root "${path.join(runDir, "board_source_for_e")}" --voiceover "${path.join(runDir, "script", "voiceover_segments.json")}" --skip-tts --quality standard`,
-    {
-      cwd: workspaceDir,
-      env: buildPythonSpawnEnv(),
-      windowsHide: true,
-    }
+    baseOpts,
+    runDir
   );
 
   onLog("5. Verificando integridade e identidade dos assets...");
-  execSync(
+  runRenderStage(
+    "Verificação de integridade",
     `"${python}" "${sPaths.checkAssetIdentity}" --project-dir "${runDir}"`,
-    {
-      cwd: workspaceDir,
-      env: buildPythonSpawnEnv(),
-      windowsHide: true,
-    }
+    baseOpts,
+    runDir
   );
 
   onLog("6. Validando empacotamento final (Quality Gate)...");
-  execSync(
+  runRenderStage(
+    "Quality Gate final",
     `"${python}" "${sPaths.validateReleaseCandidate}" --project-dir "${runDir}"`,
-    {
-      cwd: workspaceDir,
-      env: buildPythonSpawnEnv(),
-      windowsHide: true,
-    }
+    baseOpts,
+    runDir
   );
 }
