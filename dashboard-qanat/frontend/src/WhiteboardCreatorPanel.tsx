@@ -248,21 +248,27 @@ export function WhiteboardCreatorPanel({
     };
   };
 
-  const handleRender = async () => {
+  const handleRender = async (resume = false) => {
     if (!selectedRunId) return;
     setRendering(true);
     setRenderError(null);
     setRenderLogs([
-      "Iniciando pipeline de renderização...",
+      resume
+        ? "Retomando renderização do ponto da falha..."
+        : "Iniciando pipeline de renderização...",
       "1. Gerando narração com Fish TTS em Português...",
     ]);
     setActiveSubTab("render");
-    const toastId = toast.loading("Renderizando vídeo quadro branco...");
+    const toastId = toast.loading(
+      resume
+        ? "Retomando renderização..."
+        : "Renderizando vídeo quadro branco..."
+    );
     try {
       const res = await fetch("/api/whiteboard/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ runId: selectedRunId }),
+        body: JSON.stringify({ runId: selectedRunId, resume }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -1003,10 +1009,16 @@ export function WhiteboardCreatorPanel({
                             </div>
                             <div className="flex flex-wrap gap-2">
                               <button
-                                onClick={handleRender}
+                                onClick={() => handleRender(true)}
                                 className="h-8 px-4 bg-rose-500 hover:bg-rose-400 rounded-lg text-[11px] font-bold text-white cursor-pointer transition"
                               >
-                                Corrigir e tentar novamente
+                                Retomar render (pular narração)
+                              </button>
+                              <button
+                                onClick={() => handleRender(false)}
+                                className="h-8 px-4 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-[11px] font-bold text-zinc-200 cursor-pointer transition"
+                              >
+                                Renderizar do zero
                               </button>
                               <button
                                 onClick={() => setActiveSubTab("images")}

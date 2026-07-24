@@ -241,6 +241,8 @@ export function registerWhiteboardRoutes(app, deps) {
 
   app.post("/api/whiteboard/render", async (req, res) => {
     const runId = Number(req.body.runId);
+    const resume = Boolean(req.body.resume);
+    const forceNarration = Boolean(req.body.forceNarration);
     if (!runId) return res.status(400).json({ error: "runId é obrigatório." });
 
     const client = await pool.connect();
@@ -266,11 +268,24 @@ export function registerWhiteboardRoutes(app, deps) {
     ]);
 
     try {
-      // 1. Synthesize voiceover using Portuguese Fish Speech
-      await synthesizePortugueseFishSpeech(WORKSPACE_DIR, runDir);
+      const logs = [];
+
+      // 1. Synthesize voiceover using Portuguese Fish Speech.
+      //    Na retomada, pula o TTS se a narração já foi gerada (preserva progresso).
+      const narrationWav = path.join(runDir, "audio", "narration.wav");
+      const narrationExists =
+        fs.existsSync(narrationWav) && fs.statSync(narrationWav).size > 0;
+      if (narrationExists && !forceNarration) {
+        logs.push(
+          resume
+            ? "Narração já gerada — pulando TTS (retomada do ponto da falha)."
+            : "Narração já existe — pulando TTS."
+        );
+      } else {
+        await synthesizePortugueseFishSpeech(WORKSPACE_DIR, runDir);
+      }
 
       // 2. Run all remaining calibration and Remotion rendering scripts
-      const logs = [];
       await runWhiteboardRender(WORKSPACE_DIR, runDir, {
         onLog: (msg) => {
           logs.push(msg);
@@ -282,7 +297,7 @@ export function registerWhiteboardRoutes(app, deps) {
         "completed",
         runId,
       ]);
-      res.json({ success: true, logs });
+      res.json({ success: true, logs, resumed: resume && narrationExists });
     } catch (err) {
       console.error("Erro ao renderizar whiteboard run:", err);
       await pool.query("UPDATE whiteboard_runs SET status = $1 WHERE id = $2", [
