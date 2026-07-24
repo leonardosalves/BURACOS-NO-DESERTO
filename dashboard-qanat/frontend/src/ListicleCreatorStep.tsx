@@ -41,6 +41,60 @@ export const EMPTY_CONTRACT: RankingContract = {
   exclusions: "",
 };
 
+// ── Estratégia automática por quantidade (Top 3 / 5 / 10 / 20) ─────────────
+type RankingStrategy = {
+  wordsPerItem: string;
+  secondsPerItem: string;
+  hudDensity: string;
+  transitionFreq: string;
+  explanationDepth: string;
+  note: string;
+};
+
+function resolveRankingStrategy(
+  rankCount: number,
+  format: "LONGO" | "SHORTS"
+): RankingStrategy {
+  if (format === "SHORTS" || rankCount <= 3) {
+    return {
+      wordsPerItem: "18–24",
+      secondsPerItem: "12–16",
+      hudDensity: "Completo (badge + título + ícone)",
+      transitionFreq: "1 transição por item",
+      explanationDepth: "Profunda — 1 fato forte desenvolvido por item",
+      note: "Gancho imediato e revelação final forte. Poucos itens, mais profundidade.",
+    };
+  }
+  if (rankCount <= 5) {
+    return {
+      wordsPerItem: "12–16",
+      secondsPerItem: "7–10",
+      hudDensity: "Completo",
+      transitionFreq: "Transições curtas entre itens",
+      explanationDepth: "Média — fato + contexto rápido",
+      note: "Ritmo mais rápido, introdução mínima, variedade de categorias.",
+    };
+  }
+  if (rankCount <= 10) {
+    return {
+      wordsPerItem: "8–12",
+      secondsPerItem: "5–7",
+      hudDensity: "Compacto (só #N + Top N)",
+      transitionFreq: "Transições rápidas",
+      explanationDepth: "Objetiva — 1 frase de impacto por item",
+      note: "Títulos curtos, HUD compacto, menos explicação individual.",
+    };
+  }
+  return {
+    wordsPerItem: "4–8",
+    secondsPerItem: "3–5",
+    hudDensity: "Compacto",
+    transitionFreq: "Montagem rápida / agrupamento",
+    explanationDepth: "Mínima — agrupar por categorias ou capítulos",
+    note: "Formato longo ou montagem muito rápida. Considere capítulos e agrupamento.",
+  };
+}
+
 export const LISTICLE_PRESETS = [
   {
     label: "Top 20 invenções chinesas",
@@ -197,14 +251,28 @@ export function ListicleCreatorStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formatSelector]);
 
-  const hudPreview = useMemo(
-    () => buildHudPreviewItems(rankCount, rankOrder, listItems),
-    [rankCount, rankOrder, listItems]
-  );
-
   // ── Contrato do Ranking ──────────────────────────────────────────────────
   const selectedIdea =
     listicleIdeasData?.ranking_ideas?.[selectedListicleIdeaIndex] || null;
+
+  // HUD: usa list_items reais do roteiro; se ainda não existem, usa os
+  // sample_items da ideia selecionada como prévia provisória.
+  const hudPreview = useMemo(() => {
+    const real = buildHudPreviewItems(rankCount, rankOrder, listItems);
+    if (real.hasRealListItems) return { ...real, isProvisional: false };
+    const sample = selectedIdea?.sample_items || [];
+    if (sample.length > 0) {
+      const provisional = sample.map((name, i) => ({
+        rank: i + 1,
+        title: name,
+        name,
+      }));
+      const built = buildHudPreviewItems(rankCount, rankOrder, provisional);
+      return { ...built, isProvisional: true };
+    }
+    return { ...real, isProvisional: false };
+  }, [rankCount, rankOrder, listItems, selectedIdea]);
+
   const [contract, setContract] = useState<RankingContract>(EMPTY_CONTRACT);
   const [contractApproved, setContractApproved] = useState(false);
 
@@ -568,12 +636,125 @@ export function ListicleCreatorStep({
           </div>
         </div>
 
+        {/* Estratégia automática por quantidade */}
+        {(() => {
+          const strategy = resolveRankingStrategy(rankCount, formatSelector);
+          return (
+            <div className="space-y-3 rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.04] p-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">
+                Estratégia automática · Top {rankCount}
+              </p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                <StrategyStat
+                  label="Palavras/item"
+                  value={strategy.wordsPerItem}
+                />
+                <StrategyStat
+                  label="Tempo/item"
+                  value={`${strategy.secondsPerItem}s`}
+                />
+                <StrategyStat
+                  label="Transições"
+                  value={strategy.transitionFreq}
+                />
+                <StrategyStat label="HUD" value={strategy.hudDensity} />
+                <StrategyStat
+                  label="Explicação"
+                  value={strategy.explanationDepth}
+                />
+              </div>
+              <p className="text-[10px] leading-4 text-zinc-500">
+                {strategy.note}
+              </p>
+            </div>
+          );
+        })()}
+
+        {/* Posição factual vs. ordem narrativa */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400">
+              Posição factual
+            </p>
+            <p className="mt-1.5 text-[11px] leading-5 text-zinc-400">
+              Qual item é objetivamente melhor segundo o critério do contrato.
+              Define o mérito de cada posição.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400">
+              Ordem de revelação
+            </p>
+            <p className="mt-1.5 text-[11px] leading-5 text-zinc-400">
+              Em qual sequência os itens são apresentados para maximizar
+              retenção — geralmente countdown, guardando o melhor para o final.
+            </p>
+          </div>
+        </div>
+
+        {/* Progressão de tensão */}
+        <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400">
+              Progressão de tensão
+            </p>
+            <span className="text-[9px] text-zinc-600">
+              {rankOrder === "desc"
+                ? "Countdown · clímax no #1"
+                : "Build-up · clímax no topo"}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {hudPreview.items.map((item) => {
+              const climaxRank = rankOrder === "desc" ? 1 : rankCount;
+              const isClimax = item.rank === climaxRank;
+              const filled =
+                rankOrder === "desc" ? rankCount - item.rank + 1 : item.rank;
+              const tension = Math.round((filled / rankCount) * 100);
+              return (
+                <div
+                  key={`tension-${item.rank}`}
+                  className="flex items-center gap-2"
+                >
+                  <span
+                    className={`w-8 shrink-0 font-mono text-[10px] ${isClimax ? "font-bold text-amber-300" : "text-zinc-500"}`}
+                  >
+                    #{item.rank}
+                  </span>
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${tension}%`,
+                        background: isClimax
+                          ? "linear-gradient(90deg, #d4a017, #FFE9A8)"
+                          : "linear-gradient(90deg, #3f3f46, #d4a017)",
+                      }}
+                    />
+                  </div>
+                  <span
+                    className={`w-8 shrink-0 text-right font-mono text-[10px] ${isClimax ? "font-bold text-amber-300" : "text-zinc-500"}`}
+                  >
+                    {tension}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] leading-4 text-zinc-500">
+            A tensão cresce em direção ao clímax. Se um item intermediário
+            parecer mais surpreendente que o #1, considere fortalecer a
+            revelação final.
+          </p>
+        </div>
+
         <ListicleHudPreview
           rankCount={rankCount}
           rankOrder={rankOrder}
           hudStyle={listicleHudStyle}
           items={hudPreview.items}
           hasRealListItems={hudPreview.hasRealListItems}
+          isProvisional={hudPreview.isProvisional}
           videoSeed={[
             creatorProjectName,
             listTopic,
@@ -653,6 +834,19 @@ function ContractField({
         rows={2}
         className="w-full resize-y rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs leading-5 text-white outline-none focus:border-emerald-400/50 disabled:opacity-60"
       />
+    </div>
+  );
+}
+
+function StrategyStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+        {label}
+      </p>
+      <p className="mt-0.5 text-[11px] font-semibold leading-4 text-zinc-200">
+        {value}
+      </p>
     </div>
   );
 }

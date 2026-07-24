@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import lottie from 'lottie-web';
+import { useEffect, useRef, useState } from "react";
+import lottie from "lottie-web";
 import {
   hudThemeStyles,
   lottieFileForKey,
@@ -7,11 +7,11 @@ import {
   lottieVariantSeed,
   resolveLottieKey,
   type ListicleHudTheme,
-} from '@lumiera/overlays/listicleHudTheme';
-import { fetchLottieAnimation } from '@lumiera/overlays/lottieAssetLoader.browser';
-import { TITLE_WARN_CHARS } from './listicleTitleUtils';
+} from "@lumiera/overlays/listicleHudTheme";
+import { fetchLottieAnimation } from "@lumiera/overlays/lottieAssetLoader.browser";
+import { TITLE_WARN_CHARS } from "./listicleTitleUtils";
 
-type HudStyle = 'full' | 'compact' | 'auto';
+type HudStyle = "full" | "compact" | "auto";
 
 export type HudPreviewItem = {
   rank: number;
@@ -29,24 +29,28 @@ export type HudPreviewListItem = {
 
 type Props = {
   rankCount: number;
-  rankOrder: 'desc' | 'asc';
+  rankOrder: "desc" | "asc";
   hudStyle: HudStyle;
   items?: HudPreviewItem[];
   hasRealListItems?: boolean;
+  isProvisional?: boolean;
   accentColor?: string;
   hudTheme?: ListicleHudTheme;
   videoSeed?: string;
 };
 
-export function shortenHudTitle(raw: string, maxLen = TITLE_WARN_CHARS): string {
-  if (!raw) return '';
+export function shortenHudTitle(
+  raw: string,
+  maxLen = TITLE_WARN_CHARS
+): string {
+  if (!raw) return "";
   let t = raw.trim();
-  const paren = t.indexOf('(');
+  const paren = t.indexOf("(");
   if (paren > 10) t = t.slice(0, paren).trim();
   const dashExplain = t.match(/^(.{8,50}?)\s*[—–-]\s+/);
   if (dashExplain) t = dashExplain[1].trim();
   if (t.length > maxLen) {
-    const cut = t.lastIndexOf(' ', maxLen - 1);
+    const cut = t.lastIndexOf(" ", maxLen - 1);
     t = `${(cut > 20 ? t.slice(0, cut) : t.slice(0, maxLen - 1)).trim()}…`;
   }
   return t;
@@ -55,18 +59,21 @@ export function shortenHudTitle(raw: string, maxLen = TITLE_WARN_CHARS): string 
 /** Monta itens do HUD a partir de list_items do roteiro (não sample_items das ideias). */
 export function buildHudPreviewItems(
   rankCount: number,
-  rankOrder: 'desc' | 'asc',
-  listItems: HudPreviewListItem[] = [],
+  rankOrder: "desc" | "asc",
+  listItems: HudPreviewListItem[] = []
 ): { items: HudPreviewItem[]; hasRealListItems: boolean } {
-  const ranks = rankOrder === 'desc'
-    ? Array.from({ length: rankCount }, (_, i) => rankCount - i)
-    : Array.from({ length: rankCount }, (_, i) => i + 1);
+  const ranks =
+    rankOrder === "desc"
+      ? Array.from({ length: rankCount }, (_, i) => rankCount - i)
+      : Array.from({ length: rankCount }, (_, i) => i + 1);
 
   const byRank = new Map<number, { title: string; visualHook: string }>();
   for (const entry of listItems) {
     const rank = Number(entry.rank);
-    const title = shortenHudTitle(String(entry.title || entry.name || '').trim());
-    const visualHook = String(entry.visual_hook || entry.hook || '').trim();
+    const title = shortenHudTitle(
+      String(entry.title || entry.name || "").trim()
+    );
+    const visualHook = String(entry.visual_hook || entry.hook || "").trim();
     if (Number.isFinite(rank) && rank > 0 && title) {
       byRank.set(rank, { title, visualHook });
     }
@@ -74,12 +81,14 @@ export function buildHudPreviewItems(
 
   if (byRank.size === 0 && listItems.length > 0) {
     const ordered = [...listItems];
-    if (rankOrder === 'desc') ordered.reverse();
+    if (rankOrder === "desc") ordered.reverse();
     ordered.forEach((entry, idx) => {
       const rank = ranks[idx];
       if (!rank || byRank.has(rank)) return;
-      const title = shortenHudTitle(String(entry.title || entry.name || '').trim());
-      const visualHook = String(entry.visual_hook || entry.hook || '').trim();
+      const title = shortenHudTitle(
+        String(entry.title || entry.name || "").trim()
+      );
+      const visualHook = String(entry.visual_hook || entry.hook || "").trim();
       if (title) byRank.set(rank, { title, visualHook });
     });
   }
@@ -90,7 +99,7 @@ export function buildHudPreviewItems(
     return {
       rank,
       title: hit?.title || `Item #${rank}`,
-      visualHook: hit?.visualHook || '',
+      visualHook: hit?.visualHook || "",
     };
   });
 
@@ -98,12 +107,16 @@ export function buildHudPreviewItems(
 }
 
 function resolveHudStyle(hudStyle: HudStyle, rankCount: number) {
-  if (hudStyle === 'auto') return rankCount > 8 ? 'compact' : 'full';
+  if (hudStyle === "auto") return rankCount > 8 ? "compact" : "full";
   return hudStyle;
 }
 
-function filledProgress(rank: number, rankCount: number, rankOrder: 'desc' | 'asc') {
-  return rankOrder === 'desc' ? rankCount - rank + 1 : rank;
+function filledProgress(
+  rank: number,
+  rankCount: number,
+  rankOrder: "desc" | "asc"
+) {
+  return rankOrder === "desc" ? rankCount - rank + 1 : rank;
 }
 
 function HudPreviewLottie({
@@ -128,7 +141,7 @@ function HudPreviewLottie({
       if (cancelled || !ref.current) return;
       anim = lottie.loadAnimation({
         container: ref.current,
-        renderer: 'svg',
+        renderer: "svg",
         loop: true,
         autoplay: true,
         animationData,
@@ -141,7 +154,10 @@ function HudPreviewLottie({
   }, [filename]);
 
   return (
-    <div className="flex items-center justify-center flex-shrink-0" style={badge.shell}>
+    <div
+      className="flex items-center justify-center flex-shrink-0"
+      style={badge.shell}
+    >
       <div ref={ref} style={badge.lottie} />
     </div>
   );
@@ -153,9 +169,10 @@ export function ListicleHudPreview({
   hudStyle,
   items = [],
   hasRealListItems = false,
-  accentColor = '#C5A880',
-  hudTheme = 'ancient',
-  videoSeed = '',
+  isProvisional = false,
+  accentColor = "#C5A880",
+  hudTheme = "ancient",
+  videoSeed = "",
 }: Props) {
   const effectiveStyle = resolveHudStyle(hudStyle, rankCount);
   const previewItems = items;
@@ -163,11 +180,13 @@ export function ListicleHudPreview({
   const safeIdx = Math.min(activeIdx, Math.max(0, previewItems.length - 1));
   const active = previewItems[safeIdx] ?? previewItems[0];
 
-  const longTitles = previewItems.filter((item) => item.title.length > TITLE_WARN_CHARS);
+  const longTitles = previewItems.filter(
+    (item) => item.title.length > TITLE_WARN_CHARS
+  );
 
   if (!active) return null;
 
-  const climaxRank = rankOrder === 'desc' ? 1 : rankCount;
+  const climaxRank = rankOrder === "desc" ? 1 : rankCount;
   const isClimax = active.rank === climaxRank;
   const progress = filledProgress(active.rank, rankCount, rankOrder);
   const theme = hudThemeStyles(hudTheme, accentColor, isClimax);
@@ -175,16 +194,22 @@ export function ListicleHudPreview({
     isClimax,
     rank: active.rank,
     title: active.title,
-    visualHook: active.visualHook || '',
+    visualHook: active.visualHook || "",
     videoSeed,
   });
   const lottieFile = lottieFileForKey(
     lottieKey,
-    lottieVariantSeed([videoSeed, active.rank, active.title, active.visualHook || '', lottieKey]),
+    lottieVariantSeed([
+      videoSeed,
+      active.rank,
+      active.title,
+      active.visualHook || "",
+      lottieKey,
+    ])
   );
   const dotCount = Math.min(rankCount, 8);
   const useBar = rankCount > 8;
-  const lottieSize = effectiveStyle === 'compact' ? 40 : 52;
+  const lottieSize = effectiveStyle === "compact" ? 40 : 52;
 
   return (
     <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4">
@@ -198,15 +223,26 @@ export function ListicleHudPreview({
       </div>
 
       <p className="text-[10px] text-zinc-500 leading-relaxed">
-        O HUD só aparece no <span className="text-zinc-300">1º item da lista</span> — não na intro.
+        O HUD só aparece no{" "}
+        <span className="text-zinc-300">1º item da lista</span> — não na intro.
         Ícone Lottie fica só ao lado do título, escolhido pelo texto do item.
       </p>
 
-      {!hasRealListItems && (
-        <p className="text-[10px] text-amber-400/90 leading-relaxed rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-          Os títulos reais do TOP# aparecem aqui depois de gerar o roteiro (campo <span className="font-mono text-amber-200/90">list_items</span>).
-          Não usamos os exemplos das ideias sugeridas.
+      {isProvisional ? (
+        <p className="text-[10px] text-cyan-300/90 leading-relaxed rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-3 py-2">
+          Prévia provisória — usando os itens sugeridos pela ideia. Os títulos
+          finais aparecem depois de gerar o roteiro (campo{" "}
+          <span className="font-mono text-cyan-200/90">list_items</span>).
         </p>
+      ) : (
+        !hasRealListItems && (
+          <p className="text-[10px] text-amber-400/90 leading-relaxed rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+            Os títulos reais do TOP# aparecem aqui depois de gerar o roteiro
+            (campo{" "}
+            <span className="font-mono text-amber-200/90">list_items</span>).
+            Não usamos os exemplos das ideias sugeridas.
+          </p>
+        )
       )}
 
       {previewItems.length > 1 && (
@@ -218,8 +254,8 @@ export function ListicleHudPreview({
               onClick={() => setActiveIdx(idx)}
               className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border transition-colors ${
                 idx === safeIdx
-                  ? 'bg-gold-500/20 border-gold-500/50 text-gold-300'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                  ? "bg-gold-500/20 border-gold-500/50 text-gold-300"
+                  : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
               }`}
             >
               #{item.rank}
@@ -230,7 +266,7 @@ export function ListicleHudPreview({
 
       <div
         className="relative rounded-2xl overflow-hidden border border-zinc-800 mx-auto"
-        style={{ aspectRatio: '9 / 16', maxHeight: 320, maxWidth: 200 }}
+        style={{ aspectRatio: "9 / 16", maxHeight: 320, maxWidth: 200 }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-700 via-zinc-900 to-black" />
         <div
@@ -252,8 +288,9 @@ export function ListicleHudPreview({
                 className="font-sans font-extrabold tracking-wide leading-none"
                 style={{
                   fontSize: 28,
-                  color: isClimax ? '#FFE9A8' : '#FFFFFF',
-                  textShadow: '0 0 2px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.75)',
+                  color: isClimax ? "#FFE9A8" : "#FFFFFF",
+                  textShadow:
+                    "0 0 2px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.75)",
                 }}
               >
                 #{active.rank}
@@ -266,7 +303,7 @@ export function ListicleHudPreview({
               </span>
             </div>
 
-            {effectiveStyle === 'full' && active.title && (
+            {effectiveStyle === "full" && active.title && (
               <div
                 className="flex items-center justify-center gap-2 pt-2"
                 style={{ borderTop: `1px solid ${theme.divider}` }}
@@ -280,7 +317,8 @@ export function ListicleHudPreview({
                 <p
                   className="text-white text-xs font-bold leading-snug break-words text-center"
                   style={{
-                    textShadow: '0 0 2px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.75)',
+                    textShadow:
+                      "0 0 2px rgba(0,0,0,0.95), 0 2px 8px rgba(0,0,0,0.75)",
                   }}
                 >
                   {active.title}
@@ -296,7 +334,7 @@ export function ListicleHudPreview({
                       className="h-full rounded-full"
                       style={{
                         width: `${(progress / rankCount) * 100}%`,
-                        background: `linear-gradient(90deg, ${accentColor}, ${isClimax ? '#FFE9A8' : accentColor})`,
+                        background: `linear-gradient(90deg, ${accentColor}, ${isClimax ? "#FFE9A8" : accentColor})`,
                       }}
                     />
                   </div>
@@ -313,8 +351,10 @@ export function ListicleHudPreview({
                       style={{
                         width: 10,
                         height: 10,
-                        background: i < progress ? accentColor : 'rgba(255,255,255,0.22)',
-                        boxShadow: i < progress ? `0 0 10px ${accentColor}` : 'none',
+                        background:
+                          i < progress ? accentColor : "rgba(255,255,255,0.22)",
+                        boxShadow:
+                          i < progress ? `0 0 10px ${accentColor}` : "none",
                       }}
                     />
                   ))}
@@ -327,7 +367,10 @@ export function ListicleHudPreview({
         {isClimax && (
           <div
             className="absolute top-1 left-1 right-1 rounded-lg px-2 py-1 text-center"
-            style={{ background: 'rgba(0,0,0,0.55)', border: `1px solid ${accentColor}44` }}
+            style={{
+              background: "rgba(0,0,0,0.55)",
+              border: `1px solid ${accentColor}44`,
+            }}
           >
             <p className="text-[8px] text-zinc-300 uppercase tracking-wider">
               Recap animado no topo neste momento
@@ -338,7 +381,9 @@ export function ListicleHudPreview({
 
       <p className="text-[9px] text-zinc-600 text-center">
         Ícone atual: <span className="text-zinc-400">{lottieKey}</span>
-        {active.title ? ` — detectado em “${active.title.slice(0, 40)}${active.title.length > 40 ? '…' : ''}”` : ''}
+        {active.title
+          ? ` — detectado em “${active.title.slice(0, 40)}${active.title.length > 40 ? "…" : ""}”`
+          : ""}
       </p>
 
       {longTitles.length > 0 && (
@@ -348,8 +393,12 @@ export function ListicleHudPreview({
           </p>
           <ul className="mt-1 space-y-1">
             {longTitles.map((item) => (
-              <li key={`warn-${item.rank}-${item.title}`} className="text-[10px] text-amber-200/90 leading-relaxed">
-                #{item.rank} — {item.title.length} caracteres (ideal ≤ {TITLE_WARN_CHARS})
+              <li
+                key={`warn-${item.rank}-${item.title}`}
+                className="text-[10px] text-amber-200/90 leading-relaxed"
+              >
+                #{item.rank} — {item.title.length} caracteres (ideal ≤{" "}
+                {TITLE_WARN_CHARS})
               </li>
             ))}
           </ul>
@@ -359,4 +408,4 @@ export function ListicleHudPreview({
   );
 }
 
-export { warnLongListicleTitles } from './listicleTitleUtils';
+export { warnLongListicleTitles } from "./listicleTitleUtils";
