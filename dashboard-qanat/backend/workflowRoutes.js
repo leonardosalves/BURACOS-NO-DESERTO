@@ -2041,6 +2041,42 @@ Instruções críticas:
     }
   });
 
+  app.post("/api/humor-facts/refine-idea", async (req, res) => {
+    try {
+      const apiKey = getApiKeys(WORKSPACE_DIR)[0] || "";
+      const { idea, refinement } = req.body || {};
+      if (!idea?.title) throw new Error("Ideia ausente.");
+      const refinementMap = {
+        hook: `Reescreva APENAS o gancho (hook) desta pauta para torná-lo mais impactante e curioso. Mantenha a premissa factual intacta. Responda APENAS JSON: {"hook":"novo gancho"}`,
+        funnier: `Torne esta pauta mais engraçada sem alterar a premissa factual. Ajuste o hook e o whyFunny. Responda APENAS JSON: {"hook":"...","whyFunny":"..."}`,
+        factual: `Reforce a base factual desta pauta. Adicione contexto verificável ao factualPremise sem inventar. Responda APENAS JSON: {"factualPremise":"...","confidence":"alta"}`,
+      };
+      const instruction = refinementMap[refinement];
+      if (!instruction) throw new Error("Tipo de refinamento inválido.");
+      const prompt = `Você é um editor de pautas humorísticas factuais.
+
+PAUTA ATUAL:
+Título: ${idea.title}
+Hook: ${idea.hook || ""}
+Premissa factual: ${idea.factualPremise || ""}
+Por que é engraçado: ${idea.whyFunny || ""}
+
+INSTRUÇÃO: ${instruction}`;
+      const raw = await callGeminiWithRetry(apiKey, prompt, {
+        maxRetries: 2,
+        projectDir: WORKSPACE_DIR,
+        temperature: 0.7,
+        activityLabel: "Refino Fatos com Graça",
+      });
+      const parsed = parseHumorIdeasResponse.length
+        ? JSON.parse((raw.match(/\{[\s\S]*\}/) || ["{}"])[0])
+        : {};
+      res.json({ ok: true, result: parsed });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/tts/voices", async (_req, res) => {
     try {
       const fishConfig = loadFishSpeechConfig({ workspaceDir: WORKSPACE_DIR });
