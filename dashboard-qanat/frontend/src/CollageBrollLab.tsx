@@ -1362,6 +1362,78 @@ function FrameComparison({
   );
 }
 
+/**
+ * Explica o "porquê" de cada métrica de validação e separa a recomendação
+ * automática da IA da decisão humana.
+ */
+function buildValidationExplanations(
+  v: CollageItem["validation"],
+  item: CollageItem
+): { metric: string; score: number | string; explanation: string }[] {
+  if (!v) return [];
+  const missing = (v.missingAnchors || []).join(", ");
+  const score = (n?: number) => (typeof n === "number" ? n : "—");
+
+  const semExplain =
+    typeof v.semanticAlignment === "number"
+      ? v.semanticAlignment >= 90
+        ? `A proposta representa bem os elementos da narração.${missing ? ` "${missing}" foi simplificado.` : ""}`
+        : v.semanticAlignment >= 70
+          ? `Cobre a maioria dos elementos${missing ? `, mas "${missing}" foi simplificado` : ""}.`
+          : `Não representa adequadamente${missing ? `: ${missing}` : " os elementos da narração"}.`
+      : "Sem avaliação.";
+
+  const entExplain =
+    typeof v.entityCoverage === "number"
+      ? v.entityCoverage >= 90
+        ? "Todas as entidades obrigatórias foram preservadas."
+        : v.entityCoverage >= 70
+          ? `A maioria das entidades foi preservada${missing ? `; faltando: ${missing}` : ""}.`
+          : `Entidades importantes ausentes${missing ? `: ${missing}` : ""}.`
+      : "Sem avaliação.";
+
+  const geoExplain =
+    typeof v.geographicRelevance === "number"
+      ? v.geographicRelevance >= 90
+        ? "Local e relações geográficas identificados corretamente."
+        : v.geographicRelevance >= 70
+          ? "Local identificado, mas direção/escala da rota não confirmada."
+          : "Relações geográficas imprecisas ou ausentes."
+      : "Sem avaliação.";
+
+  const clarityExplain =
+    typeof v.fiveSecondClarity === "number"
+      ? v.fiveSecondClarity >= 90
+        ? "Composição legível em 5 segundos."
+        : v.fiveSecondClarity >= 70
+          ? "Legível, mas rótulos/elementos podem estar pequenos."
+          : "Pouco legível em 5 segundos — simplifique a composição."
+      : "Sem avaliação.";
+
+  return [
+    {
+      metric: "Alinhamento semântico",
+      score: score(v.semanticAlignment),
+      explanation: semExplain,
+    },
+    {
+      metric: "Entidades",
+      score: score(v.entityCoverage),
+      explanation: entExplain,
+    },
+    {
+      metric: "Geografia",
+      score: score(v.geographicRelevance),
+      explanation: geoExplain,
+    },
+    {
+      metric: "Clareza em 5s",
+      score: score(v.fiveSecondClarity),
+      explanation: clarityExplain,
+    },
+  ];
+}
+
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text).then(
     () => toast.success(`${label} copiado`),
@@ -4972,28 +5044,73 @@ export function CollageBrollLab({
                   ).join(" → ")}
                 />
                 {selected.validation && (
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2 space-y-1">
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2.5 space-y-2">
                     <p className="text-[8px] uppercase font-bold text-zinc-500">
                       Validação semântica
                     </p>
-                    <p className="text-[10px] text-zinc-400">
-                      alinhamento {selected.validation.semanticAlignment ?? "—"}
-                      % · entidades {selected.validation.entityCoverage ?? "—"}%
-                      · geo {selected.validation.geographicRelevance ?? "—"}% ·
-                      clareza 5s {selected.validation.fiveSecondClarity ?? "—"}%
-                    </p>
-                    <p
-                      className={`text-[10px] font-bold ${
-                        selected.validation.decision === "approve"
-                          ? "text-emerald-300"
-                          : "text-amber-300"
-                      }`}
-                    >
-                      {selected.validation.decision}
-                      {selected.validation.revisionInstruction
-                        ? ` — ${selected.validation.revisionInstruction}`
-                        : ""}
-                    </p>
+                    <div className="space-y-1.5">
+                      {buildValidationExplanations(
+                        selected.validation,
+                        selected
+                      ).map((row) => {
+                        const num =
+                          typeof row.score === "number" ? row.score : null;
+                        const tone =
+                          num == null
+                            ? "text-zinc-400"
+                            : num >= 90
+                              ? "text-emerald-300"
+                              : num >= 70
+                                ? "text-amber-300"
+                                : "text-rose-300";
+                        return (
+                          <div
+                            key={row.metric}
+                            className="flex items-start gap-2"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">
+                                  {row.metric}
+                                </span>
+                                <span
+                                  className={`font-mono text-[10px] font-bold ${tone}`}
+                                >
+                                  {row.score}
+                                  {num != null ? "%" : ""}
+                                </span>
+                              </div>
+                              <p className="text-[10px] leading-4 text-zinc-400">
+                                {row.explanation}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t border-zinc-800 pt-2 space-y-1">
+                      <p className="text-[9px] uppercase tracking-wider text-zinc-500">
+                        Recomendação da IA
+                      </p>
+                      <p
+                        className={`text-[10px] font-bold ${
+                          selected.validation.decision === "approve"
+                            ? "text-emerald-300"
+                            : "text-amber-300"
+                        }`}
+                      >
+                        {selected.validation.decision === "approve"
+                          ? "Aprovar"
+                          : "Aprovar com correção"}
+                        {selected.validation.revisionInstruction
+                          ? ` — ${selected.validation.revisionInstruction}`
+                          : ""}
+                      </p>
+                      <p className="text-[9px] text-zinc-600">
+                        A decisão final é humana — a recomendação acima é
+                        automática.
+                      </p>
+                    </div>
                     {(selected.validation.missingAnchors || []).length > 0 && (
                       <p className="text-[9px] text-amber-200/80">
                         Âncoras faltando:{" "}
